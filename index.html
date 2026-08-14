@@ -1,27 +1,5 @@
-<!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Marcenaria Elite | Administrativo</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <aside class="sidebar">
-    <div class="brand"><span class="mark">E</span><div><b>Elite Planejados</b><small>Administrativo</small></div></div>
-    <nav id="nav"></nav>
-  </aside>
-  <main>
-    <header><div><h1 id="pageTitle">Dashboard</h1><p>Marcenaria Elite Planejados</p></div><button id="newBtn">+ Novo lançamento</button></header>
-    <section id="app"></section>
-  </main>
-  <dialog id="modal">
-    <form method="dialog" id="entryForm">
-      <div class="modal-head"><h2 id="modalTitle">Novo lançamento</h2><button value="cancel" class="x">×</button></div>
-      <div id="fields" class="form-grid"></div>
-      <div class="actions"><button value="cancel" class="secondary">Cancelar</button><button id="saveBtn" value="default">Salvar</button></div>
-    </form>
-  </dialog>
-  <script src="app.js"></script>
-</body>
-</html>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Marcenaria Elite | Administrativo</title><link rel="stylesheet" href="style.css"></head><body>
+<section id="authScreen" class="auth-screen"><div class="auth-card"><div class="brand auth-brand"><span class="mark">E</span><div><b>Elite Planejados</b><small>Sistema Administrativo</small></div></div><h1>Entrar</h1><p class="muted">Acesse os dados da marcenaria de qualquer dispositivo.</p><form id="authForm"><label>E-mail<input id="authEmail" type="email" required></label><label>Senha<input id="authPassword" type="password" minlength="6" required></label><button type="submit">Entrar</button><button type="button" id="signupBtn" class="secondary">Criar minha conta</button><p id="authMessage"></p></form></div></section>
+<div id="appShell" class="hidden"><aside class="sidebar"><div class="brand"><span class="mark">E</span><div><b>Elite Planejados</b><small>Administrativo</small></div></div><nav id="nav"></nav><button id="logoutBtn" class="logout">Sair</button></aside><main><header><div><h1 id="pageTitle">Dashboard</h1><p>Marcenaria Elite Planejados</p></div><button id="newBtn">+ Novo lançamento</button></header><section id="app"></section></main></div>
+<dialog id="modal"><form method="dialog" id="entryForm"><div class="modal-head"><h2 id="modalTitle">Novo lançamento</h2><button value="cancel" class="x">×</button></div><div id="fields" class="form-grid"></div><div class="actions"><button value="cancel" class="secondary">Cancelar</button><button value="default">Salvar</button></div></form></dialog>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js"></script></body></html>

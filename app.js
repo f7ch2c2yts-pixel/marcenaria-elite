@@ -1,63 +1,15 @@
-const modules = {
-  dashboard:{label:"Dashboard"},
-  vendas:{label:"Vendas", fields:[["data","Data","date"],["cliente","Cliente"],["projeto","Descrição / Projeto"],["valor","Valor total","number"],["entrada","Entrada","number"],["forma","Forma de pagamento"],["status","Status","select",["Orçamento","Em andamento","Concluída","Cancelada"]],["prazo","Prazo de entrega","date"],["obs","Observações","textarea"]]},
-  clientes:{label:"Clientes", fields:[["nome","Nome"],["cpf","CPF/CNPJ"],["telefone","Telefone"],["email","E-mail","email"],["cidade","Cidade"],["obs","Observações","textarea"]]},
-  fornecedores:{label:"Fornecedores", fields:[["razao","Razão social"],["cnpj","CPF/CNPJ"],["telefone","Telefone"],["email","E-mail","email"],["categoria","Categoria"],["cidade","Cidade"],["obs","Observações","textarea"]]},
-  receber:{label:"Contas a Receber", fields:[["vencimento","Vencimento","date"],["cliente","Cliente"],["venda","ID da venda"],["valor","Valor","number"],["recebido","Recebido","number"],["forma","Forma"],["status","Status","select",["Aberto","Parcial","Recebido","Atrasado"]]]},
-  pagar:{label:"Contas a Pagar", fields:[["vencimento","Vencimento","date"],["fornecedor","Fornecedor"],["descricao","Descrição"],["valor","Valor","number"],["pago","Pago","number"],["forma","Forma"],["status","Status","select",["Aberto","Parcial","Pago","Atrasado"]]]},
-  cheques:{label:"Cheques", fields:[["numero","Nº cheque"],["cliente","Cliente"],["venda","ID da venda"],["banco","Banco"],["valor","Valor","number"],["bompara","Bom para","date"],["status","Status","select",["Em carteira","Depositado","Compensado","Repassado","Devolvido"]],["fornecedor","Fornecedor (se repassado)"],["contapagar","Conta a pagar vinculada"],["obs","Observações","textarea"]]},
-  caixa:{label:"Fluxo de Caixa", fields:[["data","Data","date"],["tipo","Tipo","select",["Entrada","Saída"]],["origem","Origem"],["descricao","Descrição"],["forma","Forma"],["valor","Valor","number"]]}
-};
-let current="dashboard";
-const $=s=>document.querySelector(s);
-const money=n=>Number(n||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
-const load=k=>JSON.parse(localStorage.getItem("elite_"+k)||"[]");
-const save=(k,v)=>localStorage.setItem("elite_"+k,JSON.stringify(v));
-const nav=$("#nav");
-Object.entries(modules).forEach(([k,m])=>{let b=document.createElement("button");b.textContent=m.label;b.onclick=()=>{current=k;render()};b.dataset.k=k;nav.appendChild(b)});
-function sum(k,f){return load(k).reduce((a,x)=>a+Number(x[f]||0),0)}
-function dashboard(){
- const vendas=sum("vendas","valor"), rec=sum("receber","valor")-sum("receber","recebido"), pag=sum("pagar","valor")-sum("pagar","pago");
- const cx=load("caixa").reduce((a,x)=>a+(x.tipo==="Saída"?-1:1)*Number(x.valor||0),0);
- const ch=load("cheques");
- return `<div class="cards">
- <div class="card"><small>Total em vendas</small><strong>${money(vendas)}</strong></div>
- <div class="card"><small>A receber em aberto</small><strong>${money(rec)}</strong></div>
- <div class="card"><small>A pagar em aberto</small><strong>${money(pag)}</strong></div>
- <div class="card"><small>Saldo de caixa</small><strong>${money(cx)}</strong></div>
- <div class="card"><small>Cheques em carteira</small><strong>${ch.filter(x=>x.status==="Em carteira").length}</strong></div>
- <div class="card"><small>Cheques repassados</small><strong>${ch.filter(x=>x.status==="Repassado").length}</strong></div>
- <div class="card"><small>Cheques devolvidos</small><strong>${ch.filter(x=>x.status==="Devolvido").length}</strong></div>
- <div class="card"><small>Vendas concluídas</small><strong>${load("vendas").filter(x=>x.status==="Concluída").length}</strong></div></div>
- <div class="panel"><h3>Visão geral</h3><p>Cadastre clientes e fornecedores, lance vendas, contas, cheques e movimentações de caixa. O módulo de cheques mantém o vínculo cliente → venda → cheque → fornecedor → conta a pagar.</p></div>`;
-}
-function table(k){
- let rows=load(k), fields=modules[k].fields;
- let heads=fields.slice(0,6).map(f=>`<th>${f[1]}</th>`).join("");
- let body=rows.map((r,i)=>`<tr>${fields.slice(0,6).map(f=>`<td>${f[2]==="number"?money(r[f[0]]):r[f[0]]||""}</td>`).join("")}<td><button onclick="del('${k}',${i})">Excluir</button></td></tr>`).join("");
- return `<div class="panel"><div class="toolbar"><b>${modules[k].label}</b><span>${rows.length} registro(s)</span></div>${rows.length?`<div style="overflow:auto"><table><thead><tr>${heads}<th></th></tr></thead><tbody>${body}</tbody></table></div>`:`<div class="empty">Nenhum registro ainda. Toque em “+ Novo lançamento”.</div>`}</div>`;
-}
-function render(){
- $("#pageTitle").textContent=modules[current].label;
- document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("active",b.dataset.k===current));
- $("#newBtn").style.display=current==="dashboard"?"none":"block";
- $("#app").innerHTML=current==="dashboard"?dashboard():table(current);
-}
-window.del=(k,i)=>{let a=load(k);a.splice(i,1);save(k,a);render()}
-$("#newBtn").onclick=()=>{
- let m=modules[current];$("#modalTitle").textContent="Novo — "+m.label;
- $("#fields").innerHTML=m.fields.map(f=>{
-   let [key,label,type="text",opts]=f, control;
-   if(type==="select") control=`<select name="${key}">${opts.map(o=>`<option>${o}</option>`).join("")}</select>`;
-   else if(type==="textarea") control=`<textarea name="${key}" rows="3"></textarea>`;
-   else control=`<input name="${key}" type="${type}" ${type==="number"?'step="0.01"':''}>`;
-   return `<div class="field ${type==="textarea"?"full":""}"><label>${label}</label>${control}</div>`;
- }).join("");
- $("#modal").showModal();
-}
-$("#entryForm").addEventListener("submit",e=>{
- if(e.submitter?.value==="cancel") return;
- e.preventDefault(); let fd=new FormData(e.target), obj=Object.fromEntries(fd.entries());
- obj.id=Date.now(); let a=load(current);a.push(obj);save(current,a);$("#modal").close();e.target.reset();render();
-});
-render();
+const U='https://hcptpecxxvfgzzhdmwgd.supabase.co',K='sb_publishable_PBiKyvAF4N-ugCylIOSREw_qL59MeB-';const sb=window.supabase.createClient(U,K),$=s=>document.querySelector(s),money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});let session=null,current='dashboard',cache={};
+const M={dashboard:{label:'Dashboard'},clientes:{label:'Clientes',table:'clientes',fields:[['nome','Nome'],['cpf_cnpj','CPF/CNPJ'],['telefone','Telefone'],['email','E-mail','email'],['cidade','Cidade'],['observacoes','Observações','textarea']]},fornecedores:{label:'Fornecedores',table:'fornecedores',fields:[['razao_social','Razão social'],['cpf_cnpj','CPF/CNPJ'],['telefone','Telefone'],['email','E-mail','email'],['categoria','Categoria'],['cidade','Cidade'],['observacoes','Observações','textarea']]},vendas:{label:'Vendas',table:'vendas',fields:[['data','Data','date'],['cliente_id','Cliente','rel','clientes','nome'],['projeto','Projeto'],['valor','Valor','number'],['entrada','Entrada','number'],['forma_pagamento','Forma'],['status','Status','select',['Orçamento','Em andamento','Concluída','Cancelada']],['prazo_entrega','Prazo','date'],['observacoes','Observações','textarea']]},receber:{label:'Contas a Receber',table:'contas_receber',fields:[['vencimento','Vencimento','date'],['cliente_id','Cliente','rel','clientes','nome'],['venda_id','Venda','rel','vendas','projeto'],['valor','Valor','number'],['recebido','Recebido','number'],['forma','Forma'],['status','Status','select',['Aberto','Parcial','Recebido','Atrasado']]]},pagar:{label:'Contas a Pagar',table:'contas_pagar',fields:[['vencimento','Vencimento','date'],['fornecedor_id','Fornecedor','rel','fornecedores','razao_social'],['descricao','Descrição'],['valor','Valor','number'],['pago','Pago','number'],['forma','Forma'],['status','Status','select',['Aberto','Parcial','Pago','Atrasado']]]},cheques:{label:'Cheques',table:'cheques',fields:[['numero','Nº cheque'],['cliente_id','Cliente','rel','clientes','nome'],['venda_id','Venda','rel','vendas','projeto'],['banco','Banco'],['valor','Valor','number'],['bom_para','Bom para','date'],['status','Status','select',['Em carteira','Depositado','Compensado','Repassado','Devolvido']],['fornecedor_id','Fornecedor','rel','fornecedores','razao_social'],['conta_pagar_id','Conta a pagar','rel','contas_pagar','descricao'],['observacoes','Observações','textarea']]},caixa:{label:'Fluxo de Caixa',table:'caixa',fields:[['data','Data','date'],['tipo','Tipo','select',['Entrada','Saída']],['origem','Origem'],['descricao','Descrição'],['forma','Forma'],['valor','Valor','number']]}};
+for(const[k,m]of Object.entries(M)){let b=document.createElement('button');b.textContent=m.label;b.dataset.k=k;b.onclick=async()=>{current=k;await render()};$('#nav').appendChild(b)}
+$('#authForm').onsubmit=async e=>{e.preventDefault();const{error}=await sb.auth.signInWithPassword({email:$('#authEmail').value.trim(),password:$('#authPassword').value});$('#authMessage').textContent=error?('Não foi possível entrar: '+error.message):''};
+$('#signupBtn').onclick=async()=>{const{data,error}=await sb.auth.signUp({email:$('#authEmail').value.trim(),password:$('#authPassword').value});$('#authMessage').textContent=error?('Não foi possível criar a conta: '+error.message):(data.session?'Conta criada e conectada.':'Conta criada. Confira seu e-mail para confirmar o cadastro.')};
+$('#logoutBtn').onclick=()=>sb.auth.signOut();
+sb.auth.onAuthStateChange((_e,s)=>{session=s;if(s){$('#authScreen').classList.add('hidden');$('#appShell').classList.remove('hidden');render()}else{$('#appShell').classList.add('hidden');$('#authScreen').classList.remove('hidden')}});
+(async()=>{const{data}=await sb.auth.getSession();session=data.session;if(session){$('#authScreen').classList.add('hidden');$('#appShell').classList.remove('hidden');render()}})();
+async function rows(t){const{data,error}=await sb.from(t).select('*').order('created_at',{ascending:false});if(error)throw error;cache[t]=data||[];return cache[t]}
+async function dash(){await Promise.all(['vendas','contas_receber','contas_pagar','caixa','cheques'].map(rows));let v=cache.vendas,r=cache.contas_receber,p=cache.contas_pagar,c=cache.caixa,h=cache.cheques;let sv=v.reduce((a,x)=>a+Number(x.valor||0),0),sr=r.reduce((a,x)=>a+Number(x.valor||0)-Number(x.recebido||0),0),sp=p.reduce((a,x)=>a+Number(x.valor||0)-Number(x.pago||0),0),sc=c.reduce((a,x)=>a+(x.tipo==='Saída'?-1:1)*Number(x.valor||0),0);return `<div class="cards"><div class="card"><small>Total em vendas</small><strong>${money(sv)}</strong></div><div class="card"><small>A receber</small><strong>${money(sr)}</strong></div><div class="card"><small>A pagar</small><strong>${money(sp)}</strong></div><div class="card"><small>Saldo de caixa</small><strong>${money(sc)}</strong></div><div class="card"><small>Cheques em carteira</small><strong>${h.filter(x=>x.status==='Em carteira').length}</strong></div><div class="card"><small>Cheques repassados</small><strong>${h.filter(x=>x.status==='Repassado').length}</strong></div></div><div class="panel"><b>Dados online ativados</b><p>Use o mesmo login no celular e no computador.</p></div>`}
+async function table(k){let m=M[k],r=await rows(m.table);for(let f of m.fields.filter(x=>x[2]==='rel'))if(!cache[f[3]])await rows(f[3]);let show=m.fields.slice(0,6),body=r.map(x=>`<tr>${show.map(f=>{let v=x[f[0]];if(f[2]==='number')v=money(v);if(f[2]==='rel'){let z=(cache[f[3]]||[]).find(y=>y.id===v);v=z?z[f[4]]:''}return `<td>${v??''}</td>`}).join('')}<td><button class="danger" onclick="delRow('${k}','${x.id}')">Excluir</button></td></tr>`).join('');return `<div class="panel"><div class="toolbar"><b>${m.label}</b><span>${r.length} registro(s)</span></div>${r.length?`<div class="table-wrap"><table><tr>${show.map(f=>`<th>${f[1]}</th>`).join('')}<th></th></tr>${body}</table></div>`:'<div class="empty">Nenhum registro ainda.</div>'}</div>`}
+async function render(){$('#pageTitle').textContent=M[current].label;document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.k===current));$('#newBtn').style.display=current==='dashboard'?'none':'block';$('#app').innerHTML='<div class="loading">Carregando...</div>';try{$('#app').innerHTML=current==='dashboard'?await dash():await table(current)}catch(e){$('#app').innerHTML=`<div class="panel">${e.message}</div>`}}
+window.delRow=async(k,id)=>{if(!confirm('Excluir este registro?'))return;let{error}=await sb.from(M[k].table).delete().eq('id',id);if(error)return alert(error.message);cache={};render()};
+$('#newBtn').onclick=async()=>{let m=M[current],html='';for(let f of m.fields){let[key,label,type='text',a,b]=f,c;if(type==='select')c=`<select name="${key}">${a.map(o=>`<option>${o}</option>`).join('')}</select>`;else if(type==='rel'){if(!cache[a])await rows(a);c=`<select name="${key}"><option value="">Selecione...</option>${cache[a].map(x=>`<option value="${x.id}">${x[b]||x.id}</option>`).join('')}</select>`}else if(type==='textarea')c=`<textarea name="${key}"></textarea>`;else c=`<input name="${key}" type="${type}" ${type==='number'?'step="0.01"':''}>`;html+=`<div class="field ${type==='textarea'?'full':''}"><label>${label}</label>${c}</div>`}$('#fields').innerHTML=html;$('#modalTitle').textContent='Novo — '+m.label;$('#modal').showModal()};
+$('#entryForm').onsubmit=async e=>{if(e.submitter?.value==='cancel')return;e.preventDefault();let m=M[current],o=Object.fromEntries(new FormData(e.target));for(let f of m.fields){if(f[2]==='number')o[f[0]]=o[f[0]]===''?0:Number(o[f[0]]);if(f[2]==='rel'&&o[f[0]]==='')o[f[0]]=null;if(f[2]==='date'&&o[f[0]]==='')o[f[0]]=null}o.user_id=session.user.id;let{error}=await sb.from(m.table).insert(o);if(error)return alert(error.message);$('#modal').close();e.target.reset();cache={};render()};
